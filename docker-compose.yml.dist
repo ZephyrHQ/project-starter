@@ -1,0 +1,78 @@
+version: '3'
+networks:
+    fastcgi: ~
+    db: ~
+    blackfire: ~
+volumes:
+    dbdata: ~
+services:
+    php:
+        build:
+            context: ./docker/php
+        hostname: ${COMPOSE_PROJECT_NAME}-php
+        volumes:
+            - ./:/var/www/html
+            - ./docker/php/php-fpm-${CONTAINER_ENV}.conf:/etc/php/7.2/fpm/php-fpm.conf
+            - ./docker/php/www-${CONTAINER_ENV}.conf:/etc/php/7.2/fpm/pool.d/www.conf
+            - ./docker/php/php-${CONTAINER_ENV}.ini:/etc/php/7.2/fpm/php.ini
+            - ./docker/php/php-${CONTAINER_ENV}.ini:/etc/php/7.2/cli/php.ini
+        env_file:
+            - .env
+        environment:
+            - COMPOSER_CACHE_DIR=/dev/null
+        networks:
+            - fastcgi
+            - db
+            - blackfire
+    apache:
+        build:
+            context: ./docker/apache
+        hostname: ${COMPOSE_PROJECT_NAME}-apache
+        volumes:
+            - ./:/var/www/html
+            - ./docker/apache/php-fpm.conf:/etc/apache2/conf-available/php-fpm.conf
+            - ./docker/apache/security.conf:/etc/apache2/conf-available/security.conf
+            - ./docker/apache/vhost.conf:/etc/apache2/sites-available/vhost.conf
+            - ./docker/apache/vhost-ssl.conf:/etc/apache2/sites-available/vhost-ssl.conf
+            - ./docker/apache/ssl:/etc/ssl
+        env_file:
+            - .env
+        networks:
+            - fastcgi
+        ports:
+            - 127.0.0.1:80:80
+            - 127.0.0.1:443:443
+    mariadb:
+        image: mariadb:latest
+        hostname: ${COMPOSE_PROJECT_NAME}-mariadb
+        volumes:
+            - ./docker/mariadb/conf.d:/etc/mysql/conf.d
+            - dbdata:/var/lib/mysql
+        env_file:
+            - .env
+        environment:
+            - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+            - MYSQL_USER=${DB_USER}
+            - MYSQL_PASSWORD=${DB_PASSWORD}
+            - MYSQL_DATABASE=${DB_NAME}
+        networks:
+            - db
+        ports:
+            - 127.0.0.1:3306:3306
+    webpack:
+        build:
+            context: ./docker/webpack
+        hostname: ${COMPOSE_PROJECT_NAME}-webpack
+        volumes:
+            - ./:/app
+        env_file:
+            - .env
+        ports:
+            - 127.0.0.1:8080:8080
+    blackfire:
+        image: blackfire/blackfire
+        hostname: ${COMPOSE_PROJECT_NAME}-blackfire
+        env_file:
+            - .env
+        networks:
+            - blackfire

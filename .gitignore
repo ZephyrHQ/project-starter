@@ -1,0 +1,15 @@
+/node_modules
+
+/public/build
+/webpack.config.js
+/docker-compose.yml
+
+/docker/apache/vhost.conf
+/docker/apache/vhost-ssl.conf
+/docker/apache/ssl/csr/localhost.csr.pem
+/docker/apache/ssl/certs/localhost.cert.pem
+/docker/apache/ssl/private/localhost.key.pem
+/docker/apache/ssl/index.txt
+/docker/apache/ssl/serial
+/docker/apache/ssl/*.old
+/docker/apache/ssl/newcerts/*.pem

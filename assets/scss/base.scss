@@ -1,0 +1,13 @@
+$ptop: 2rem;
+
+html {
+    font-size: 100%;
+    box-sizing: border-box;
+}
+*, *::after, *::before {
+    box-sizing: inherit;
+}
+
+h1 {
+    padding-top: $ptop;
+}

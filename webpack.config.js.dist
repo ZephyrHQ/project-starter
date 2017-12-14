@@ -1,0 +1,192 @@
+const path = require('path');
+const fs = require('fs');
+const webpack = require('webpack');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const ExtractTextPlugin = require('extract-text-webpack-plugin'); // for generating css files
+const ManifestPlugin = require('webpack-manifest-plugin'); // for versioning generated files
+const WebpackChunkHash = require('webpack-chunk-hash'); // for better hash versioning
+const CleanWebpackPlugin = require('clean-webpack-plugin'); // for cleaning build directory
+const autoprefixer = require('autoprefixer'); // css prefixes
+
+module.exports = (env, argv) => {
+    const isProd = !!(env && env.prod);
+    const useVersioning = isProd;
+    const useDevserver = !isProd;
+    const hostDevserver = 'localhost';
+    const portDevserver = 8080;
+
+    const cssLoader = {
+        loader: 'css-loader',
+        options: {
+            sourceMap: !isProd,
+            minimize: isProd,
+        },
+    };
+    const postcssLoader = {
+        loader: 'postcss-loader',
+        options: {
+            sourceMap: !isProd,
+            plugins: (loader) => [
+                autoprefixer(),
+            ],
+        },
+    };
+    const styleLoader = {
+        loader: 'style-loader',
+        options: {
+            sourceMap: !isProd,
+        },
+    };
+    const resolveUrlLoader = {
+        loader: 'resolve-url-loader',
+        options: {
+            sourceMap: !isProd,
+        },
+    };
+    const sassLoader = {
+        loader: 'sass-loader',
+        options: {
+            sourceMap: true, // always true because of resolve-url-loader
+        },
+    };
+
+    const config = {
+        entry: {
+            vendor: './assets/js/vendor.js',
+            default_index: './assets/js/default/index.js',
+        },
+        output: {
+            path: path.resolve(__dirname, 'public', 'build'),
+            filename: useVersioning ? '[name].[chunkhash:6].js' : '[name].js',
+            publicPath: useDevserver ? 'https://'+hostDevserver+':'+portDevserver+'/build/' : '/build/',
+        },
+        resolve: {
+            alias: {
+                '@js': path.resolve('./assets/js/'),
+                '@scss': path.resolve('./assets/scss/'),
+            }
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.js$/,
+                    exclude: /node_modules/,
+                    use: {
+                        loader: 'babel-loader',
+                        options: {
+                            "cacheDirectory": true,
+                        }
+                    }
+                },
+                {
+                    test: /\.css$/,
+                    use: ['css-hot-loader'].concat(ExtractTextPlugin.extract({
+                        use: [cssLoader, postcssLoader],
+                        fallback: styleLoader,
+                    }))
+                },
+                {
+                    test: /\.scss$/,
+                    use: ['css-hot-loader'].concat(ExtractTextPlugin.extract({
+                        use: [cssLoader, postcssLoader, resolveUrlLoader, sassLoader],
+                        fallback: styleLoader,
+                    }))
+                },
+                {
+                    test: /\.(png|svg|jpe?g|gif)$/,
+                    use: [
+                        {
+                            loader: 'url-loader',
+                            options: {
+                                limit: 10000, // image <10kB will be inlined
+                                name: '[name].[hash:6].[ext]',
+                            }
+                        },
+                        {
+                            loader: 'img-loader',
+                            options: {
+                                enabled: isProd,
+                                gifsicle: {
+                                    interlaced: false,
+                                },
+                                pngquant: {
+                                    quality: '65-90',
+                                },
+                                mozjpeg: {
+                                    progressive: true,
+                                    quality: 75,
+                                },
+                                // the webp option will enable WEBP
+                                // webp: {
+                                //     quality: 75
+                                // }
+                            }
+                        },
+                    ],
+                },
+                {
+                    test: /\.(eot|otf|ttf|woff2?)$/,
+                    use: [
+                        {
+                            loader: 'file-loader',
+                            options: {
+                                name: '[name].[hash:6].[ext]',
+                            }
+                        },
+                    ],
+                }
+            ],
+        },
+        plugins: [
+            new webpack.ProvidePlugin({
+                jQuery: 'jquery', // each time we see "jQuery" in code, put an "import jQuery from 'jquery'"
+                $: 'jquery',
+            }),
+            new CopyWebpackPlugin([ // copy the assets that are not generated by webpack
+                {from: './assets/static', to: 'static'},
+            ]),
+            new webpack.optimize.CommonsChunkPlugin({
+                name: 'front_vendor',
+                minChunks: Infinity, // all import in front_vendor.js are shared chunks
+            }),
+            new webpack.optimize.CommonsChunkPlugin({
+                name: 'chunk_manifest',  // webpack bootstrap (because 'chunk_manifest' not in the config "entry" key)
+                minChunks: Infinity,
+            }),
+            new ExtractTextPlugin(useVersioning ? '[name].[contenthash:6].css' : '[name].css'), // generated css files
+            new ManifestPlugin({
+                writeToFileEmit: true, // for webpack-dev-server
+                basePath: 'build/',
+            }),
+            new WebpackChunkHash(),
+            new CleanWebpackPlugin('public/build/**/*.*'),
+        ],
+        devtool: isProd ? false : 'inline-source-map', // see https://webpack.js.org/configuration/devtool/
+        devServer: {
+            host: '0.0.0.0',
+            port: portDevserver,
+            public: hostDevserver+":"+portDevserver,
+            https: {
+                key: fs.readFileSync("./docker/apache/ssl/private/localhost.key.pem"),
+                cert: fs.readFileSync("./docker/apache/ssl/certs/localhost.cert.pem"),
+                //ca: fs.readFileSync("./docker/apache/ssl/certs/intermediate.cert.pem"),
+            },
+            inline: true, // errors when https is on
+            contentBase: './public', // for static assets
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+            }
+        },
+    };
+
+    if (isProd) {
+        config.plugins.push(new webpack.optimize.UglifyJsPlugin({
+            extractComments: true // create *.LICENSE files
+        }));
+        config.plugins.push(new webpack.HashedModuleIdsPlugin()); // for identifying modules in generated code (hash version)
+    } else {
+        config.plugins.push(new webpack.NamedModulesPlugin()); // for identifying modules in generated code (filepath version)
+    }
+
+    return config;
+};
