@@ -13,3 +13,5 @@
 /docker/apache/ssl/serial
 /docker/apache/ssl/*.old
 /docker/apache/ssl/newcerts/*.pem
+
+.env
