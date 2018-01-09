@@ -32,6 +32,7 @@ RUN apt-get update && apt-get dist-upgrade -y && apt-get autoremove -y && apt-ge
         php7.2-mysql \
         php7.2-soap \
         php7.2-xml \
+        php7.2-zip \
         php7.2-mbstring \
         php7.2-curl \
         php7.2-bcmath \
