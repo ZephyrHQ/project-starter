@@ -39,7 +39,10 @@ RUN apt-get update && apt-get dist-upgrade -y && apt-get autoremove -y && apt-ge
         php7.2-tidy \
         php7.2-memcached \
         php7.2-apcu \
-    && apt-get remove -y --purge software-properties-common make \
+        php-pear \
+        php7.2-dev \
+    && pecl install xdebug-2.6.0beta1 \
+    && apt-get remove -y --purge software-properties-common make php-pear php7.2-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && mkdir -p /run/php \

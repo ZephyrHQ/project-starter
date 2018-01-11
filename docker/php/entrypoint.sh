@@ -11,11 +11,10 @@ if [ ${CONTAINER_ENV} = prod ]; then
     ln -s /etc/php/7.2/mods-available/apcu.ini /etc/php/7.2/fpm/conf.d/20-apcu.ini
 else
     # active xdebug
-    echo "no xdebug for PHP 7.2 for now";
-#    echo "zend_extension="`find /usr/lib/php -name 'xdebug.so' 2> /dev/null`"" | tee /etc/php/7.2/mods-available/xdebug.ini
-#    rm -f /etc/php/7.2/fpm/conf.d/20-xdebug.ini
-#    ln -s /etc/php/7.2/mods-available/xdebug.ini /etc/php/7.2/fpm/conf.d/20-xdebug.ini
-#    sed -r -i "s/xdebug\.remote_host ?\=.*$/xdebug.remote_host=$(ip route|awk '/default/ { print $3 }')/" /etc/php/7.2/fpm/php.ini.new
+    echo "zend_extension="`find /usr/lib/php -name 'xdebug.so' 2> /dev/null`"" | tee /etc/php/7.2/mods-available/xdebug.ini
+    rm -f /etc/php/7.2/fpm/conf.d/20-xdebug.ini
+    ln -s /etc/php/7.2/mods-available/xdebug.ini /etc/php/7.2/fpm/conf.d/20-xdebug.ini
+    sed -r -i "s/xdebug\.remote_host ?\=.*$/xdebug.remote_host=$(ip route|awk '/default/ { print $3 }')/" /etc/php/7.2/fpm/php.ini.new
 fi;
 
 sed -r -i "s/SMTP ?\=.*$/SMTP=${MAIL_HOST}/" /etc/php/7.2/fpm/php.ini.new
