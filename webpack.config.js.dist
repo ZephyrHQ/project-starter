@@ -166,6 +166,7 @@ module.exports = (env, argv) => {
             host: '0.0.0.0',
             port: portDevserver,
             public: hostDevserver+":"+portDevserver,
+            disableHostCheck: true,
             https: {
                 key: fs.readFileSync("./docker/apache/ssl/private/localhost.key.pem"),
                 cert: fs.readFileSync("./docker/apache/ssl/certs/localhost.cert.pem"),
